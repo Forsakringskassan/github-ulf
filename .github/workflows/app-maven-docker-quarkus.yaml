@@ -146,7 +146,7 @@ jobs:
               --label "org.opencontainers.image.licenses=MIT" \
               -t "$IMAGE_BASE:$ARCH-snapshot" \
               docker
-            docker push "$IMAGE_BASE:$ARCH:snapshot"
+            docker push "$IMAGE_BASE:$ARCH-snapshot"
           
             # Build and push release tags (only if release=true)
             if [ "${{ inputs.release }}" = "true" ]; then
