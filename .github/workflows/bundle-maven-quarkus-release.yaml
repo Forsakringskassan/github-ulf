@@ -18,8 +18,8 @@ jobs:
   call-app-maven-docker-quarkus:
     # if: |
     #  needs.call-app-generic-conventional-release.outputs.is-new-version == 'true' &&
-    #  (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    #needs: [call-app-generic-conventional-release]
+    # (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: [call-app-generic-conventional-release]
     uses: Forsakringskassan/.github/.github/workflows/app-maven-docker-quarkus.yaml@main
     with:
       release: true
@@ -32,5 +32,5 @@ jobs:
     # if: |
     #  needs.call-app-generic-conventional-release.outputs.is-new-version == 'true' &&
     #  (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    # needs: call-app-maven-docker-quarkus
+    needs: call-app-maven-docker-quarkus
     uses: Forsakringskassan/.github/.github/workflows/publish-release-on-tag-push.yaml@main
