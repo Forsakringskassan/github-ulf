@@ -128,14 +128,13 @@ jobs:
         run: |
           IMAGE_BASE="${{ inputs.registry }}/forsakringskassan/${{ steps.artifact.outputs.name }}"
           echo "IMAGE_BASE=$IMAGE_BASE" >> $GITHUB_ENV
-          
+      
           GIT_COMMIT=$(git rev-parse HEAD)
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           NEXT_VERSION="${{ inputs.version }}"
-          
+      
           for ARCH in $ARCHS; do
-            # Build once with temporary tag
-            TMP_TAG="$IMAGE_BASE-$ARCH:tmp"
+            # Build and push snapshot
             docker build \
               --platform linux/$ARCH \
               --build-arg NEXT_VERSION=$NEXT_VERSION \
@@ -145,24 +144,27 @@ jobs:
               --label "org.opencontainers.image.source=https://github.com/Forsakringskassan/repository" \
               --label "org.opencontainers.image.description=Quarkus application: ${{ steps.artifact.outputs.name }}" \
               --label "org.opencontainers.image.licenses=MIT" \
-              -t "$TMP_TAG" \
+              -t "$IMAGE_BASE-$ARCH:snapshot" \
               docker
-          
-            # Always tag and push snapshot
-            docker tag "$TMP_TAG" "$IMAGE_BASE-$ARCH:snapshot"
             docker push "$IMAGE_BASE-$ARCH:snapshot"
-          
-            # Conditionally tag and push release
+      
+            # Build and push release tags (only if release=true)
             if [ "${{ inputs.release }}" = "true" ]; then
-              docker tag "$TMP_TAG" "$IMAGE_BASE-$ARCH:$NEXT_VERSION"
-              docker tag "$TMP_TAG" "$IMAGE_BASE-$ARCH:latest"
+              docker build \
+                --platform linux/$ARCH \
+                --build-arg NEXT_VERSION=$NEXT_VERSION \
+                --build-arg GIT_COMMIT=$GIT_COMMIT \
+                --build-arg IMAGE_NAME=$IMAGE_BASE \
+                --build-arg BUILD_DATE="$BUILD_DATE" \
+                --label "org.opencontainers.image.source=https://github.com/Forsakringskassan/repository" \
+                --label "org.opencontainers.image.description=Quarkus application: ${{ steps.artifact.outputs.name }}" \
+                --label "org.opencontainers.image.licenses=MIT" \
+                -t "$IMAGE_BASE-$ARCH:$NEXT_VERSION" \
+                -t "$IMAGE_BASE-$ARCH:latest" \
+                docker
               docker push "$IMAGE_BASE-$ARCH:$NEXT_VERSION"
               docker push "$IMAGE_BASE-$ARCH:latest"
             fi
-          
-            # remove temporary tag
-            docker rmi "$TMP_TAG"
-          
           done
         env:
           GH_TOKEN: ${{ secrets.PACKAGES_RW_TOKEN }}
