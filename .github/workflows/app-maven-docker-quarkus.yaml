@@ -128,11 +128,11 @@ jobs:
         run: |
           IMAGE_BASE="${{ inputs.registry }}/forsakringskassan/${{ steps.artifact.outputs.name }}"
           echo "IMAGE_BASE=$IMAGE_BASE" >> $GITHUB_ENV
-      
+          
           GIT_COMMIT=$(git rev-parse HEAD)
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           NEXT_VERSION="${{ inputs.version }}"
-      
+          
           for ARCH in $ARCHS; do
             # Build and push snapshot
             docker build \
@@ -144,10 +144,10 @@ jobs:
               --label "org.opencontainers.image.source=https://github.com/Forsakringskassan/repository" \
               --label "org.opencontainers.image.description=Quarkus application: ${{ steps.artifact.outputs.name }}" \
               --label "org.opencontainers.image.licenses=MIT" \
-              -t "$IMAGE_BASE-$ARCH:snapshot" \
+              -t "$IMAGE_BASE:$ARCH-snapshot" \
               docker
-            docker push "$IMAGE_BASE-$ARCH:snapshot"
-      
+            docker push "$IMAGE_BASE:$ARCH:snapshot"
+          
             # Build and push release tags (only if release=true)
             if [ "${{ inputs.release }}" = "true" ]; then
               docker build \
@@ -159,34 +159,34 @@ jobs:
                 --label "org.opencontainers.image.source=https://github.com/Forsakringskassan/repository" \
                 --label "org.opencontainers.image.description=Quarkus application: ${{ steps.artifact.outputs.name }}" \
                 --label "org.opencontainers.image.licenses=MIT" \
-                -t "$IMAGE_BASE-$ARCH:$NEXT_VERSION" \
-                -t "$IMAGE_BASE-$ARCH:latest" \
+                -t "$IMAGE_BASE:$ARCH-$NEXT_VERSION" \
+                -t "$IMAGE_BASE:$ARCH-latest" \
                 docker
-              docker push "$IMAGE_BASE-$ARCH:$NEXT_VERSION"
-              docker push "$IMAGE_BASE-$ARCH:latest"
+              docker push "$IMAGE_BASE:$ARCH-$NEXT_VERSION"
+              docker push "$IMAGE_BASE:$ARCH-latest"
             fi
           done
         env:
           GH_TOKEN: ${{ secrets.PACKAGES_RW_TOKEN }}
 
       - name: Create and push multi-arch manifests
-        run: |          
+        run: |
           if [ "${{ inputs.release }}" = "true" ]; then
             # Release manifests
-            docker manifest create "$IMAGE_BASE:latest" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE-$ARCH:${{ inputs.version }} "; done)
-            docker manifest create "$IMAGE_BASE:${{ inputs.version }}" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE-$ARCH:${{ inputs.version }} "; done)
+            docker manifest create "$IMAGE_BASE:latest" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE:$ARCH-${{ inputs.version }} "; done)
+            docker manifest create "$IMAGE_BASE:${{ inputs.version }}" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE:$ARCH-${{ inputs.version }} "; done)
             for ARCH in $ARCHS; do
-              docker manifest annotate "$IMAGE_BASE:latest" "$IMAGE_BASE-$ARCH:${{ inputs.version }}" --arch $ARCH --os linux
-              docker manifest annotate "$IMAGE_BASE:${{ inputs.version }}" "$IMAGE_BASE-$ARCH:${{ inputs.version }}" --arch $ARCH --os linux
+              docker manifest annotate "$IMAGE_BASE:latest" "$IMAGE_BASE:$ARCH-${{ inputs.version }}" --arch $ARCH --os linux
+              docker manifest annotate "$IMAGE_BASE:${{ inputs.version }}" "$IMAGE_BASE:$ARCH-${{ inputs.version }}" --arch $ARCH --os linux
             done
             docker manifest push "$IMAGE_BASE:latest"
             docker manifest push "$IMAGE_BASE:${{ inputs.version }}"
           fi
           
           # Snapshot manifest
-          docker manifest create "$IMAGE_BASE:snapshot" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE-$ARCH:snapshot "; done)
+          docker manifest create "$IMAGE_BASE:snapshot" $(for ARCH in $ARCHS; do echo -n "$IMAGE_BASE:$ARCH-snapshot "; done)
           for ARCH in $ARCHS; do
-            docker manifest annotate "$IMAGE_BASE:snapshot" "$IMAGE_BASE-$ARCH:snapshot" --arch $ARCH --os linux
+            docker manifest annotate "$IMAGE_BASE:snapshot" "$IMAGE_BASE:$ARCH-snapshot" --arch $ARCH --os linux
           done
           docker manifest push "$IMAGE_BASE:snapshot"
         env:
