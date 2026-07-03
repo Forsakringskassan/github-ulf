@@ -138,6 +138,9 @@ jobs:
       - name: Log in to registry
         run: echo "${{ secrets.PACKAGES_RW_TOKEN }}" | docker login ${{ inputs.registry }} -u ${{ secrets.PACKAGES_RW_ACTOR }} --password-stdin
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Build and push per-arch Docker images
         run: |
           IMAGE_BASE="${{ inputs.registry }}/forsakringskassan/${{ steps.pkg.outputs.name }}"
